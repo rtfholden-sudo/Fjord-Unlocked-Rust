@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Horizon icon: the sun rising over a grass block's horizon. Our own work. -->
+<svg width="48" height="48" version="1.1" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <!-- sky -->
+  <rect x="2" y="2" width="44" height="44" rx="6" fill="#79a6ff"/>
+  <!-- sun -->
+  <circle cx="24" cy="30" r="10" fill="#ffb02e"/>
+  <circle cx="24" cy="30" r="13.5" fill="none" stroke="#ffb02e" stroke-width="2" stroke-dasharray="3.5 4.2" opacity="0.85"/>
+  <!-- grass block face -->
+  <path d="M2 32 h44 v8 a6 6 0 0 1 -6 6 H8 a6 6 0 0 1 -6 -6 z" fill="#7a4a21"/>
+  <!-- grass top -->
+  <path d="M2 32 h44 v4 H2 z" fill="#5fae3f"/>
+  <path d="M6 36 h4 v3 H6 z M16 36 h4 v3 h-4 z M28 36 h4 v3 h-4 z M38 36 h4 v3 h-4 z" fill="#5fae3f"/>
+</svg>

@@ -19,6 +19,9 @@
         <!-- Modrinth logo icon -->
         <file>scalable/instances/modrinth.svg</file>
 
+        <!-- Horizon icon. Our own. -->
+        <file>scalable/horizon.svg</file>
+
         <!-- A proxy icon. Our own. SSSsss -->
         <file>scalable/proxy.svg</file>
 

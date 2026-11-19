@@ -62,8 +62,10 @@
 #include "minecraft/launch/EnsureAvailableMemory.h"
 #include "minecraft/launch/EnsureOfflineLibraries.h"
 #include "minecraft/launch/ExtractNatives.h"
+#include "minecraft/launch/HorizonPartLaunch.h"
 #include "minecraft/launch/LauncherPartLaunch.h"
 #include "minecraft/launch/ModMinecraftJar.h"
+#include "minecraft/launch/PrepareHorizonResources.h"
 #include "minecraft/launch/PrintInstanceInfo.h"
 #include "minecraft/launch/ReconstructAssets.h"
 #include "minecraft/launch/ScanModFolders.h"
@@ -273,6 +275,12 @@ void MinecraftInstance::loadSpecificSettings()
     // Join server on launch, this does not have a global override
     m_settings->registerSetting("OverrideModDownloadLoaders", false);
     m_settings->registerSetting("ModDownloadLoaders", "[]");
+
+    // Horizon instances run the Rust reimplementation of the game instead of
+    // the Java client; see minecraft/horizon/HorizonSupport.h
+    m_settings->registerSetting("HorizonInstance", false);
+    m_settings->registerSetting("HorizonBuild", "");
+    m_settings->registerSetting("HorizonVersion", "");
 
     qDebug() << "Instance-type specific settings were loaded!";
 
@@ -1213,9 +1221,103 @@ QList<LaunchStep::Ptr> MinecraftInstance::createUpdateTask()
     };
 }
 
+LaunchTask* MinecraftInstance::createHorizonLaunchTask(AuthSessionPtr session, MinecraftTarget::Ptr targetToJoin)
+{
+    auto process = LaunchTask::create(this);
+    auto pptr = process.get();
+
+    APPLICATION->icons()->saveIcon(iconKey(), FS::PathCombine(gameRoot(), "icon.png"), "PNG");
+
+    // print a header
+    {
+        process->appendStep(makeShared<TextPrint>(pptr, "Minecraft folder is:\n  " + gameRoot() + "\n", MessageLevel::Launcher));
+    }
+
+    // create the .minecraft folder and server-resource-packs (workaround for Minecraft bug MCL-3732)
+    {
+        process->appendStep(makeShared<CreateGameFolders>(pptr));
+    }
+
+    if (!targetToJoin && settings()->get("JoinServerOnLaunch").toBool()) {
+        QString fullAddress = settings()->get("JoinServerOnLaunchAddress").toString();
+        if (!fullAddress.isEmpty()) {
+            targetToJoin.reset(new MinecraftTarget(MinecraftTarget::parse(fullAddress, false)));
+        } else {
+            QString world = settings()->get("JoinWorldOnLaunch").toString();
+            if (!world.isEmpty()) {
+                targetToJoin.reset(new MinecraftTarget(MinecraftTarget::parse(world, true)));
+            }
+        }
+    }
+
+    // load meta
+    {
+        auto mode = session && session->launchMode != LaunchMode::Offline ? Net::Mode::Online : Net::Mode::Offline;
+        process->appendStep(makeShared<TaskStepWrapper>(pptr, makeShared<MinecraftLoadAndCheck>(this, mode)));
+    }
+
+    // check java. The game itself needs no Java, but horizon-prepare runs
+    // Mojang's own exporters on a Java of the pinned major version; the
+    // usual machinery also leaves a suitable JavaPath behind for it.
+    {
+        process->appendStep(makeShared<AutoInstallJava>(pptr));
+        process->appendStep(makeShared<CheckJava>(pptr));
+        process->appendStep(makeShared<VerifyJavaInstall>(pptr));
+    }
+
+    // run pre-launch command if that's needed
+    if (getPreLaunchCommand().size()) {
+        auto step = makeShared<PreLaunchCommand>(pptr);
+        step->setWorkingDirectory(gameRoot());
+        process->appendStep(step);
+    }
+
+    // if we aren't in offline mode
+    if (session && session->launchMode != LaunchMode::Offline) {
+        process->appendStep(makeShared<ClaimAccount>(pptr, session));
+    }
+
+    // download the pinned Minecraft's files and prepare the resources the
+    // build reads, the first time and whenever a new build needs them again
+    {
+        process->appendStep(makeShared<PrepareHorizonResources>(pptr));
+    }
+
+    {
+        // actually launch the game
+        auto step = makeShared<HorizonPartLaunch>(pptr);
+        step->setWorkingDirectory(gameRoot());
+        step->setAuthSession(session);
+        step->setTargetToJoin(targetToJoin);
+        process->appendStep(step);
+    }
+
+    // run post-exit command if that's needed
+    if (getPostExitCommand().size()) {
+        auto step = makeShared<PostLaunchCommand>(pptr);
+        step->setWorkingDirectory(gameRoot());
+        process->appendStep(step);
+    }
+    if (session) {
+        process->setCensorFilter(createCensorFilterFromSession(session));
+    }
+    if (m_settings->get("QuitAfterGameStop").toBool()) {
+        process->appendStep(makeShared<QuitAfterGameStop>(pptr));
+    }
+    m_launchProcess = std::move(process);
+    emit launchTaskChanged(m_launchProcess.get());
+    return m_launchProcess.get();
+}
+
 LaunchTask* MinecraftInstance::createLaunchTask(AuthSessionPtr session, MinecraftTarget::Ptr targetToJoin)
 {
     updateRuntimeContext();
+
+    // Horizon instances run the Rust client, not the JVM.
+    if (settings()->get("HorizonInstance").toBool()) {
+        return createHorizonLaunchTask(session, targetToJoin);
+    }
+
     auto process = LaunchTask::create(this);
     auto pptr = process.get();
 

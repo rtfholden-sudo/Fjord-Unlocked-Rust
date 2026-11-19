@@ -285,6 +285,10 @@ set(MINECRAFT_SOURCES
     minecraft/launch/ExtractNatives.h
     minecraft/launch/LauncherPartLaunch.cpp
     minecraft/launch/LauncherPartLaunch.h
+    minecraft/launch/HorizonPartLaunch.cpp
+    minecraft/launch/HorizonPartLaunch.h
+    minecraft/launch/PrepareHorizonResources.cpp
+    minecraft/launch/PrepareHorizonResources.h
     minecraft/launch/MinecraftTarget.cpp
     minecraft/launch/MinecraftTarget.h
     minecraft/launch/PrintInstanceInfo.cpp
@@ -299,6 +303,8 @@ set(MINECRAFT_SOURCES
     minecraft/launch/AutoInstallJava.h
 
     minecraft/GradleSpecifier.h
+    minecraft/horizon/HorizonSupport.cpp
+    minecraft/horizon/HorizonSupport.h
     minecraft/MinecraftInstance.cpp
     minecraft/MinecraftInstance.h
     minecraft/LaunchProfile.cpp
@@ -589,6 +595,11 @@ set(PACKWIZ_SOURCES
 )
 
 
+set(HORIZON_SOURCES
+    modplatform/horizon/HorizonInstanceCreationTask.h
+    modplatform/horizon/HorizonInstanceCreationTask.cpp
+)
+
 set(TECHNIC_SOURCES
     modplatform/technic/SingleZipPackInstallTask.h
     modplatform/technic/SingleZipPackInstallTask.cpp
@@ -801,6 +812,7 @@ set(LOGIC_SOURCES
     ${PACKWIZ_SOURCES}
     ${TECHNIC_SOURCES}
     ${ATLAUNCHER_SOURCES}
+    ${HORIZON_SOURCES}
 )
 
 if(APPLE AND Launcher_ENABLE_UPDATER)
@@ -980,6 +992,8 @@ SET(LAUNCHER_SOURCES
     # GUI - platform pages
     ui/pages/modplatform/CustomPage.cpp
     ui/pages/modplatform/CustomPage.h
+    ui/pages/modplatform/HorizonPage.cpp
+    ui/pages/modplatform/HorizonPage.h
 
     ui/pages/modplatform/ResourcePage.cpp
     ui/pages/modplatform/ResourcePage.h

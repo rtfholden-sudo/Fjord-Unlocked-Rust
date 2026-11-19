@@ -125,6 +125,9 @@ class MinecraftInstance : public BaseInstance {
     //////  Launch stuff //////
     QList<Task::Ptr> createUpdateTask() override;
     LaunchTask* createLaunchTask(AuthSessionPtr account, MinecraftTarget::Ptr targetToJoin) override;
+    /** Launch task of a Horizon instance: prepares the resources and starts
+     *  the native Rust client instead of the JVM. */
+    LaunchTask* createHorizonLaunchTask(AuthSessionPtr session, MinecraftTarget::Ptr targetToJoin);
     QStringList extraArguments() override;
     QStringList verboseDescription(AuthSessionPtr session, MinecraftTarget::Ptr targetToJoin) override;
     QList<Mod*> getJarMods() const;
